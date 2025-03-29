@@ -1,0 +1,41 @@
+import tensorflow as tf
+import tensorflow_quantum as tfq
+import cirq
+import sympy
+import numpy as np
+
+# Create a simple quantum circuit
+def create_quantum_circuit():
+    qubit = cirq.GridQubit(0, 0)
+    circuit = cirq.Circuit()
+    circuit.append(cirq.H(qubit))  # Hadamard gate
+    circuit.append(cirq.Rz(sympy.Symbol('theta'))(qubit))  # Rotation gate
+    circuit.append(cirq.measure(qubit))  # Measurement
+    return circuit
+
+# Prepare quantum data
+quantum_circuit = create_quantum_circuit()
+
+# Convert to TensorFlow Quantum representation
+qubit = cirq.GridQubit(0, 0)
+q_data = tfq.convert_to_tensor([quantum_circuit])
+
+# Define classical model
+model = tf.keras.Sequential([
+    tf.keras.layers.Input(shape=(), dtype=tf.string),
+    tfq.layers.PQC(quantum_circuit, tf.keras.layers.Dense(10, activation='relu')),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+
+# Compile the model
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Generate dummy data
+X_train = tfq.convert_to_tensor([create_quantum_circuit() for _ in range(100)])
+y_train = np.random.randint(2, size=(100,))
+
+# Train the model
+model.fit(X_train, y_train, epochs=10, batch_size=10)
+
+# Save model
+model.save("quantum_nn_model")
